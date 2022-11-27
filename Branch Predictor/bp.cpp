@@ -165,6 +165,9 @@ BTB::BTB(unsigned btbSize, unsigned historySize, unsigned tagSize, unsigned fsmS
 }
 
 unsigned BTB::calcShared(uint32_t pc, int Shared) {
+	if (!isGlobalTable) {
+		return 0;
+	}
 	if (Shared == 1) {
 		return (pc >> 2) & ((unsigned)pow(2, historySize) - 1);
 	}
