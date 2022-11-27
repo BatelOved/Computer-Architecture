@@ -7,15 +7,9 @@
 #include <vector>
 #include <list>
 #include <algorithm>
+#include <math.h>
 using namespace std;
 
-void showlist(list<bool> g)
-{
-    list<bool>::iterator it;
-    for (it = g.begin(); it != g.end(); ++it)
-        cout << '\t' << *it;
-    cout << '\n';
-}
 
 /*************************************************Class FSM_Table***************************************************/
 class FSM_Table {
@@ -69,8 +63,6 @@ class FSM_Table {
 	vector<shared_ptr<FSM>> fsmTable;
 	unsigned fsmTableSize;
 
-	static int histToInt(shared_ptr<list<bool>> hist);
-
 public:
 	FSM_Table(unsigned fsmTableSize, unsigned fsmState): fsmTableSize(fsmTableSize) {
 		for (int i = 0; i < fsmTableSize; i++) {
@@ -84,36 +76,21 @@ public:
 		}
 	}
 
-	bool predict(shared_ptr<list<bool>> history) {
-		unsigned int idx = histToInt(history);
-		return fsmTable[idx]->predict();
+	bool predict(unsigned history) {
+		return fsmTable[history]->predict();
 	}
 
-	void update(shared_ptr<list<bool>> history, bool taken) {
-		unsigned int idx = histToInt(history);
-		fsmTable[idx]->update(taken);
-		// for (int i = 0; i < 4; i++) { // TODO
-		// 	cout << fsmTable[idx]->predict() << endl;
-		// }
-		//showlist(*history);
+	void update(unsigned history, bool taken) {
+		fsmTable[history]->update(taken);
 	}
 };
-
-int FSM_Table::histToInt(shared_ptr<list<bool>> hist) {
-	int fsmEntry = 0;
-	int i;
-	list<bool>::iterator histIt;
-	for (i = 0, histIt = hist->begin(); histIt != hist->end(); ++histIt, ++i) {
-		fsmEntry += (*histIt) * pow(2,i);
-	}
-	return fsmEntry;
-}
 
 
 /***************************************************Class BTB******************************************************/
 class BTB {
 public:
 	struct Branch {
+		uint32_t pc;
 		uint32_t tag;
 		uint32_t targetPc;
 		unsigned historySize;
@@ -122,8 +99,8 @@ public:
 		bool used;
 
 	public:
-		Branch(uint32_t tag, uint32_t targetPc, unsigned historySize, shared_ptr<list<bool>> hist, shared_ptr<FSM_Table> fsmTable, bool used): 
-					targetPc(targetPc), historySize(historySize), hist(hist), fsmTable(fsmTable), used(used) {}
+		Branch(uint32_t pc, uint32_t tag, uint32_t targetPc, unsigned historySize, shared_ptr<list<bool>> hist, shared_ptr<FSM_Table> fsmTable, bool used): 
+					pc(pc), tag(tag), targetPc(targetPc), historySize(historySize), hist(hist), fsmTable(fsmTable), used(used) {}
 		
 		void updateHist(bool taken) {
 			hist->push_front(taken);
@@ -141,6 +118,9 @@ private:
 	bool isGlobalTable;
 	int Shared;
 
+	static unsigned histToInt(shared_ptr<list<bool>> hist);
+	unsigned calcShared(uint32_t pc, int Shared);
+
 public:
 	BTB(unsigned btbSize, unsigned historySize, unsigned tagSize, unsigned fsmState, bool isGlobalHist, bool isGlobalTable, int Shared);
 	bool exists(uint32_t pc);
@@ -154,11 +134,7 @@ BTB::BTB(unsigned btbSize, unsigned historySize, unsigned tagSize, unsigned fsmS
 	btbTable(), btbSize(btbSize), historySize(historySize), tagSize(tagSize), fsmState(fsmState), isGlobalHist(isGlobalHist), isGlobalTable(isGlobalTable), Shared(Shared) {
 	if (!isGlobalHist && !isGlobalTable) {
 		for (int i = 0; i < btbSize; i++) {
-			shared_ptr<list<bool>> local_hist = make_shared<list<bool>>();
-			for (int i = 0; i < historySize; i++) {
-				local_hist->push_front(0);
-			}
-			btbTable.push_back(make_shared<Branch>(0, 0, historySize, local_hist, make_shared<FSM_Table>(pow(2,historySize), fsmState), false));
+			btbTable.push_back(make_shared<Branch>(0, 0, 0, historySize, nullptr, nullptr, false));
 		}
 	}
 	else if (isGlobalHist && isGlobalTable) {
@@ -168,17 +144,13 @@ BTB::BTB(unsigned btbSize, unsigned historySize, unsigned tagSize, unsigned fsmS
 		}
 		shared_ptr<FSM_Table> global_fsm_table = make_shared<FSM_Table>(pow(2,historySize), fsmState);
 		for (int i = 0; i < btbSize; i++) {
-			btbTable.push_back(make_shared<Branch>(0, 0, historySize, global_hist, global_fsm_table, false));
+			btbTable.push_back(make_shared<Branch>(0, 0, 0, historySize, global_hist, global_fsm_table, false));
 		}
 	}
 	else if (!isGlobalHist && isGlobalTable) {
-		shared_ptr<list<bool>> local_hist = make_shared<list<bool>>();
-		for (int i = 0; i < historySize; i++) {
-			local_hist->push_front(0);
-		}
 		shared_ptr<FSM_Table> global_fsm_table = make_shared<FSM_Table>(pow(2,historySize), fsmState);
 		for (int i = 0; i < btbSize; i++) {
-			btbTable.push_back(make_shared<Branch>(0, 0, historySize, local_hist, global_fsm_table, false));
+			btbTable.push_back(make_shared<Branch>(0, 0, 0, historySize, nullptr, global_fsm_table, false));
 		}
 	}
 	else {
@@ -187,9 +159,29 @@ BTB::BTB(unsigned btbSize, unsigned historySize, unsigned tagSize, unsigned fsmS
 			global_hist->push_front(0);
 		}
 		for (int i = 0; i < btbSize; i++) {
-			btbTable.push_back(make_shared<Branch>(0, 0, historySize, global_hist, make_shared<FSM_Table>(pow(2,historySize), fsmState), false));
+			btbTable.push_back(make_shared<Branch>(0, 0, 0, historySize, global_hist, nullptr, false));
 		}
 	}
+}
+
+unsigned BTB::calcShared(uint32_t pc, int Shared) {
+	if (Shared == 1) {
+		return (pc >> 2) & ((unsigned)pow(2, historySize) - 1);
+	}
+	else if (Shared == 2) {
+		return (pc >> 16) & ((unsigned)pow(2, historySize) - 1);
+	}
+	return 0;
+}
+
+unsigned BTB::histToInt(shared_ptr<list<bool>> hist) {
+	unsigned histIdx = 0;
+	int i;
+	list<bool>::iterator histIt;
+	for (i = 0, histIt = hist->begin(); histIt != hist->end(); ++histIt, ++i) {
+		histIdx += (*histIt) * pow(2,i);
+	}
+	return histIdx;
 }
 
 void BTB::update(uint32_t pc, uint32_t targetPc, bool taken) {
@@ -197,15 +189,15 @@ void BTB::update(uint32_t pc, uint32_t targetPc, bool taken) {
 	unsigned *tagIdx = new unsigned;
 	parsePc(pc, btbSize, tagSize, tagIdx, btbIdx);
 	shared_ptr<Branch> targetBranch = btbTable[*btbIdx];
+	unsigned int fsmEntry = histToInt(targetBranch->hist);
 
 	delete btbIdx;
 	delete tagIdx;
 
-	btbTable[*btbIdx]->fsmTable->update(btbTable[*btbIdx]->hist, taken);
-	btbTable[*btbIdx]->updateHist(taken);
-	//targetBranch->fsmTable->update(targetBranch->hist, taken);
-	//targetBranch->updateHist(taken);
+	targetBranch->fsmTable->update(fsmEntry ^ calcShared(pc, Shared), taken);
+	targetBranch->updateHist(taken);
 	targetBranch->targetPc = targetPc;
+	targetBranch->pc = pc;
 }
 
 bool BTB::predict(uint32_t pc, uint32_t *dst) {
@@ -217,7 +209,9 @@ bool BTB::predict(uint32_t pc, uint32_t *dst) {
 	delete btbIdx;
 	delete tagIdx;
 
-	if (targetBranch->fsmTable->predict(targetBranch->hist)) {
+	unsigned int fsmEntry = histToInt(targetBranch->hist);
+	
+	if (targetBranch->fsmTable->predict(fsmEntry ^ calcShared(pc, Shared))) {
 		*dst = targetBranch->targetPc;
 		return true;
 	}
@@ -230,34 +224,36 @@ void BTB::insertBranch(uint32_t pc, uint32_t targetPc, bool taken) {
 	unsigned *tagIdx = new unsigned;
 	parsePc(pc, btbSize, tagSize, tagIdx, btbIdx);
 	shared_ptr<Branch> targetBranch = btbTable[*btbIdx];
+	unsigned int fsmEntry = isGlobalHist ? histToInt(targetBranch->hist) : 0;
 
 	if (isGlobalHist && isGlobalTable) {
-		//shared_ptr<list<bool>> global_hist = targetBranch->hist;
-		//shared_ptr<FSM_Table> global_fsm_table = targetBranch->fsmTable;
-		//targetBranch->fsmTable = targetBranch->fsmTable;
-		//targetBranch->hist = targetBranch->hist;
+		targetBranch->used = true;
 		targetBranch->tag = *tagIdx;
 		targetBranch->targetPc = targetPc;
-		targetBranch->used = true;
-		//make_shared<Branch>(*tagIdx, targetPc, historySize, global_hist, global_fsm_table, true);
-		cout << "[insertBranch] used: " << targetBranch->used << endl;
-		targetBranch->fsmTable->update(targetBranch->hist, taken);
+		targetBranch->pc = pc;
+		targetBranch->fsmTable->update(fsmEntry ^ calcShared(pc, Shared), taken);
 		targetBranch->updateHist(taken);
 	}
 	else if (!isGlobalHist && isGlobalTable) {
-		shared_ptr<FSM_Table> global_fsm_table = targetBranch->fsmTable;
 		shared_ptr<list<bool>> local_hist = make_shared<list<bool>>();
 		for (int i = 0; i < historySize; i++) {
 			local_hist->push_front(0);
 		}
-		targetBranch = make_shared<Branch>(*tagIdx, targetPc, historySize, local_hist, global_fsm_table, true);
-		targetBranch->fsmTable->update(targetBranch->hist, taken);
+		targetBranch->used = true;
+		targetBranch->tag = *tagIdx;
+		targetBranch->hist = local_hist;
+		targetBranch->targetPc = targetPc;
+		targetBranch->pc = pc;
+		targetBranch->fsmTable->update(fsmEntry ^ calcShared(pc, Shared), taken);
 		targetBranch->updateHist(taken);
 	}
 	else if (isGlobalHist && !isGlobalTable) {
-		shared_ptr<list<bool>> global_hist = targetBranch->hist;
-		targetBranch = make_shared<Branch>(*tagIdx, targetPc, historySize, global_hist, make_shared<FSM_Table>(pow(2,historySize), fsmState), true);
-		targetBranch->fsmTable->update(targetBranch->hist, taken);
+		targetBranch->used = true;
+		targetBranch->tag = *tagIdx;
+		targetBranch->targetPc = targetPc;
+		targetBranch->pc = pc;
+		targetBranch->fsmTable = make_shared<FSM_Table>(pow(2,historySize), fsmState);
+		targetBranch->fsmTable->update(fsmEntry ^ calcShared(pc, Shared), taken);
 		targetBranch->updateHist(taken);
 	}
 	else {
@@ -265,8 +261,13 @@ void BTB::insertBranch(uint32_t pc, uint32_t targetPc, bool taken) {
 		for (int i = 0; i < historySize; i++) {
 			local_hist->push_front(0);
 		}
-		targetBranch = make_shared<Branch>(*tagIdx, targetPc, historySize, local_hist, make_shared<FSM_Table>(pow(2,historySize), fsmState), true);
-		targetBranch->fsmTable->update(targetBranch->hist, taken);
+		targetBranch->used = true;
+		targetBranch->tag = *tagIdx;
+		targetBranch->hist = local_hist;
+		targetBranch->targetPc = targetPc;
+		targetBranch->pc = pc;
+		targetBranch->fsmTable = make_shared<FSM_Table>(pow(2,historySize), fsmState);
+		targetBranch->fsmTable->update(histToInt(targetBranch->hist), taken);
 		targetBranch->updateHist(taken);
 	}
 
@@ -281,7 +282,6 @@ bool BTB::exists(uint32_t pc) {
 	shared_ptr<Branch> targetBranch = btbTable[*btbIdx];
 
 	bool exists = targetBranch->used && *tagIdx == targetBranch->tag;
-	cout << "[exists] used: " <<  btbTable[*btbIdx]->used << endl;
 
 	delete btbIdx;
 	delete tagIdx;
@@ -307,7 +307,8 @@ class BP {
 public:
 	BP(unsigned btbSize, unsigned historySize, unsigned tagSize, unsigned fsmState, bool isGlobalHist, bool isGlobalTable, int Shared);
 	bool predict(uint32_t pc, uint32_t *dst);
-	void update(uint32_t pc, uint32_t targetPc, bool taken);
+	void update(uint32_t pc, uint32_t targetPc, bool taken, uint32_t pred_dst);
+	void getStats(SIM_stats *curStats);
 };
 
 BP::BP(unsigned btbSize, unsigned historySize, unsigned tagSize, unsigned fsmState, bool isGlobalHist, bool isGlobalTable, int Shared):
@@ -328,7 +329,7 @@ BP::BP(unsigned btbSize, unsigned historySize, unsigned tagSize, unsigned fsmSta
 	btb = make_shared<BTB>(btbSize, historySize, tagSize, fsmState, isGlobalHist, isGlobalTable, Shared);
 	stats.br_num = 0;
 	stats.flush_num = 0;
-	stats.size = 0;
+	stats.size = btbSize * (tagSize + 30 + 1) + historySize * (isGlobalHist ? 1 : btbSize) + 2 * pow(2, historySize) * (isGlobalTable ? 1 : btbSize);
 }
 
 bool BP::predict(uint32_t pc, uint32_t *dst) {
@@ -340,7 +341,9 @@ bool BP::predict(uint32_t pc, uint32_t *dst) {
 	return false;
 }
 
-void BP::update(uint32_t pc, uint32_t targetPc, bool taken) {
+void BP::update(uint32_t pc, uint32_t targetPc, bool taken, uint32_t pred_dst) {
+	stats.flush_num += taken ? pred_dst != targetPc : pred_dst != pc + 4;
+	++stats.br_num;
 	if (btb->exists(pc)) {
 		btb->update(pc, targetPc, taken);
 	}
@@ -351,13 +354,17 @@ void BP::update(uint32_t pc, uint32_t targetPc, bool taken) {
 	return;
 }
 
+void BP::getStats(SIM_stats *curStats) {
+	*curStats = stats;
+}
+
 /********************************************************************************************************************/
 
 shared_ptr<BP> bp = nullptr;
 
 
 int BP_init(unsigned btbSize, unsigned historySize, unsigned tagSize, unsigned fsmState,
-			bool isGlobalHist, bool isGlobalTable, int Shared){
+			bool isGlobalHist, bool isGlobalTable, int Shared) {
 	bp = make_shared<BP>(btbSize, historySize, tagSize, fsmState, isGlobalHist, isGlobalTable, Shared);
 	if (bp == nullptr) {
 		return -1;
@@ -365,16 +372,17 @@ int BP_init(unsigned btbSize, unsigned historySize, unsigned tagSize, unsigned f
 	return 0;
 }
 
-bool BP_predict(uint32_t pc, uint32_t *dst){
+bool BP_predict(uint32_t pc, uint32_t *dst) {
 	return bp->predict(pc, dst);
 }
 
-void BP_update(uint32_t pc, uint32_t targetPc, bool taken, uint32_t pred_dst){
-	bp->update(pc, targetPc, taken);
+void BP_update(uint32_t pc, uint32_t targetPc, bool taken, uint32_t pred_dst) {
+	bp->update(pc, targetPc, taken, pred_dst);
 	return;
 }
 
-void BP_GetStats(SIM_stats *curStats){
+void BP_GetStats(SIM_stats *curStats) {
+	bp->getStats(curStats);
 	return;
 }
 
