@@ -65,13 +65,13 @@ class FSM_Table {
 
 public:
 	FSM_Table(unsigned fsmTableSize, unsigned fsmState): fsmTableSize(fsmTableSize) {
-		for (int i = 0; i < fsmTableSize; i++) {
+		for (unsigned int i = 0; i < fsmTableSize; i++) {
 			fsmTable.push_back(make_shared<FSM>(FSM_State(fsmState)));
 		}
 	}
 
 	~FSM_Table() {
-		for (int i = 0; i < fsmTableSize; i++) {
+		for (unsigned int i = 0; i < fsmTableSize; i++) {
 			fsmTable.pop_back();
 		}
 	}
@@ -133,32 +133,32 @@ public:
 BTB::BTB(unsigned btbSize, unsigned historySize, unsigned tagSize, unsigned fsmState, bool isGlobalHist, bool isGlobalTable, int Shared):
 	btbTable(), btbSize(btbSize), historySize(historySize), tagSize(tagSize), fsmState(fsmState), isGlobalHist(isGlobalHist), isGlobalTable(isGlobalTable), Shared(Shared) {
 	if (!isGlobalHist && !isGlobalTable) {
-		for (int i = 0; i < btbSize; i++) {
+		for (unsigned int i = 0; i < btbSize; i++) {
 			btbTable.push_back(make_shared<Branch>(0, 0, 0, historySize, nullptr, nullptr, false));
 		}
 	}
 	else if (isGlobalHist && isGlobalTable) {
 		shared_ptr<list<bool>> global_hist = make_shared<list<bool>>();
-		for (int i = 0; i < historySize; i++) {
+		for (unsigned int i = 0; i < historySize; i++) {
 			global_hist->push_front(0);
 		}
 		shared_ptr<FSM_Table> global_fsm_table = make_shared<FSM_Table>(pow(2,historySize), fsmState);
-		for (int i = 0; i < btbSize; i++) {
+		for (unsigned int i = 0; i < btbSize; i++) {
 			btbTable.push_back(make_shared<Branch>(0, 0, 0, historySize, global_hist, global_fsm_table, false));
 		}
 	}
 	else if (!isGlobalHist && isGlobalTable) {
 		shared_ptr<FSM_Table> global_fsm_table = make_shared<FSM_Table>(pow(2,historySize), fsmState);
-		for (int i = 0; i < btbSize; i++) {
+		for (unsigned int i = 0; i < btbSize; i++) {
 			btbTable.push_back(make_shared<Branch>(0, 0, 0, historySize, nullptr, global_fsm_table, false));
 		}
 	}
 	else {
 		shared_ptr<list<bool>> global_hist = make_shared<list<bool>>();
-		for (int i = 0; i < historySize; i++) {
+		for (unsigned int i = 0; i < historySize; i++) {
 			global_hist->push_front(0);
 		}
-		for (int i = 0; i < btbSize; i++) {
+		for (unsigned int i = 0; i < btbSize; i++) {
 			btbTable.push_back(make_shared<Branch>(0, 0, 0, historySize, global_hist, nullptr, false));
 		}
 	}
@@ -176,7 +176,7 @@ unsigned BTB::calcShared(uint32_t pc, int Shared) {
 
 unsigned BTB::histToInt(shared_ptr<list<bool>> hist) {
 	unsigned histIdx = 0;
-	int i;
+	unsigned int i;
 	list<bool>::iterator histIt;
 	for (i = 0, histIt = hist->begin(); histIt != hist->end(); ++histIt, ++i) {
 		histIdx += (*histIt) * pow(2,i);
@@ -236,7 +236,7 @@ void BTB::insertBranch(uint32_t pc, uint32_t targetPc, bool taken) {
 	}
 	else if (!isGlobalHist && isGlobalTable) {
 		shared_ptr<list<bool>> local_hist = make_shared<list<bool>>();
-		for (int i = 0; i < historySize; i++) {
+		for (unsigned int i = 0; i < historySize; i++) {
 			local_hist->push_front(0);
 		}
 		targetBranch->used = true;
@@ -258,7 +258,7 @@ void BTB::insertBranch(uint32_t pc, uint32_t targetPc, bool taken) {
 	}
 	else {
 		shared_ptr<list<bool>> local_hist = make_shared<list<bool>>();
-		for (int i = 0; i < historySize; i++) {
+		for (unsigned int i = 0; i < historySize; i++) {
 			local_hist->push_front(0);
 		}
 		targetBranch->used = true;
