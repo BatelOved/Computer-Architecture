@@ -253,7 +253,7 @@ void BTB::insertBranch(uint32_t pc, uint32_t targetPc, bool taken) {
 		targetBranch->targetPc = targetPc;
 		targetBranch->pc = pc;
 		targetBranch->fsmTable = make_shared<FSM_Table>(pow(2,historySize), fsmState);
-		targetBranch->fsmTable->update(fsmEntry ^ calcShared(pc, Shared), taken);
+		targetBranch->fsmTable->update(fsmEntry, taken);
 		targetBranch->updateHist(taken);
 	}
 	else {
