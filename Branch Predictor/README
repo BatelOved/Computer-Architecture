@@ -1,0 +1,7 @@
+# Branch-Predictor
+
+To run the tests:
+1) place the given files (bp.c/pp bp_main.c....), the tests folder and the runner in the same directory.
+2) type "./run_all_tests.sh" into the terminal from the directory.
+
+The runner will show which tests failed and the number of them.
