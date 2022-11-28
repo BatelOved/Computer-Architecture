@@ -206,23 +206,23 @@ void BTB::insertBranch(uint32_t pc, uint32_t targetPc, bool taken) {
 	uint32_t btbIdx, tagIdx;
 	parsePc(pc, btbSize, tagSize, &tagIdx, &btbIdx);
 	shared_ptr<Branch> targetBranch = btbTable[btbIdx];
-	uint32_t globalFsmEntry = histToInt(targetBranch->hist);
+	uint32_t fsmEntry = isGlobalHist ? histToInt(targetBranch->hist) : 0;
 
 	if (isGlobalHist && isGlobalTable) {
-		updateBranch(targetBranch, tagIdx, targetPc, globalFsmEntry ^ calcShared(pc, Shared), targetBranch->hist, targetBranch->fsmTable, taken);
+		updateBranch(targetBranch, tagIdx, targetPc, fsmEntry ^ calcShared(pc, Shared), targetBranch->hist, targetBranch->fsmTable, taken);
 	}
 	else if (!isGlobalHist && isGlobalTable) {
 		shared_ptr<list<bool>> local_hist = make_shared<list<bool>>();
 		histInit(local_hist);
-		updateBranch(targetBranch, tagIdx, targetPc, calcShared(pc, Shared), local_hist, targetBranch->fsmTable, taken);
+		updateBranch(targetBranch, tagIdx, targetPc, fsmEntry ^ calcShared(pc, Shared), local_hist, targetBranch->fsmTable, taken);
 	}
 	else if (isGlobalHist && !isGlobalTable) {
-		updateBranch(targetBranch, tagIdx, targetPc, globalFsmEntry, targetBranch->hist, make_shared<FSM_Table>(pow(2,historySize), fsmState), taken);
+		updateBranch(targetBranch, tagIdx, targetPc, fsmEntry, targetBranch->hist, make_shared<FSM_Table>(pow(2,historySize), fsmState), taken);
 	}
 	else {
 		shared_ptr<list<bool>> local_hist = make_shared<list<bool>>();
 		histInit(local_hist);
-		updateBranch(targetBranch, tagIdx, targetPc, 0, local_hist, make_shared<FSM_Table>(pow(2,historySize), fsmState), taken);
+		updateBranch(targetBranch, tagIdx, targetPc, fsmEntry, local_hist, make_shared<FSM_Table>(pow(2,historySize), fsmState), taken);
 	}
 }
 
