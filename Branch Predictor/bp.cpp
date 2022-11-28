@@ -24,37 +24,19 @@ class FSM_Table {
 		void update(bool taken) {
 			switch(fsmState) {
 				case SNT:
-					if (taken) {
-						fsmState = WNT;
-					}
-
+					fsmState = taken ? WNT : fsmState;
 					break;
 
 				case WNT:
-					if (!taken) {
-						fsmState = SNT;
-					}
-					else {
-						fsmState = WT;
-					}
-
+					fsmState = taken ? WT : SNT;
 					break;
 
 				case WT:
-					if (!taken) {
-						fsmState = WNT;
-					}
-					else {
-						fsmState = ST;
-					}
-
+					fsmState = taken ? ST : WNT;
 					break;
 
 				case ST:
-					if (!taken) {
-						fsmState = WT;
-					}
-
+					fsmState = taken ? fsmState : WT;
 					break;
 			}
 		}
@@ -90,7 +72,6 @@ public:
 class BTB {
 public:
 	struct Branch {
-		uint32_t pc;
 		uint32_t tag;
 		uint32_t targetPc;
 		unsigned historySize;
@@ -99,8 +80,8 @@ public:
 		bool used;
 
 	public:
-		Branch(uint32_t pc, uint32_t tag, uint32_t targetPc, unsigned historySize, shared_ptr<list<bool>> hist, shared_ptr<FSM_Table> fsmTable, bool used): 
-					pc(pc), tag(tag), targetPc(targetPc), historySize(historySize), hist(hist), fsmTable(fsmTable), used(used) {}
+		Branch(uint32_t tag, uint32_t targetPc, unsigned historySize, shared_ptr<list<bool>> hist, shared_ptr<FSM_Table> fsmTable, bool used): 
+					tag(tag), targetPc(targetPc), historySize(historySize), hist(hist), fsmTable(fsmTable), used(used) {}
 		
 		void updateHist(bool taken) {
 			hist->push_front(taken);
@@ -134,7 +115,7 @@ BTB::BTB(unsigned btbSize, unsigned historySize, unsigned tagSize, unsigned fsmS
 	btbTable(), btbSize(btbSize), historySize(historySize), tagSize(tagSize), fsmState(fsmState), isGlobalHist(isGlobalHist), isGlobalTable(isGlobalTable), Shared(Shared) {
 	if (!isGlobalHist && !isGlobalTable) {
 		for (unsigned int i = 0; i < btbSize; i++) {
-			btbTable.push_back(make_shared<Branch>(0, 0, 0, historySize, nullptr, nullptr, false));
+			btbTable.push_back(make_shared<Branch>(0, 0, historySize, nullptr, nullptr, false));
 		}
 	}
 	else if (isGlobalHist && isGlobalTable) {
@@ -144,13 +125,13 @@ BTB::BTB(unsigned btbSize, unsigned historySize, unsigned tagSize, unsigned fsmS
 		}
 		shared_ptr<FSM_Table> global_fsm_table = make_shared<FSM_Table>(pow(2,historySize), fsmState);
 		for (unsigned int i = 0; i < btbSize; i++) {
-			btbTable.push_back(make_shared<Branch>(0, 0, 0, historySize, global_hist, global_fsm_table, false));
+			btbTable.push_back(make_shared<Branch>(0, 0, historySize, global_hist, global_fsm_table, false));
 		}
 	}
 	else if (!isGlobalHist && isGlobalTable) {
 		shared_ptr<FSM_Table> global_fsm_table = make_shared<FSM_Table>(pow(2,historySize), fsmState);
 		for (unsigned int i = 0; i < btbSize; i++) {
-			btbTable.push_back(make_shared<Branch>(0, 0, 0, historySize, nullptr, global_fsm_table, false));
+			btbTable.push_back(make_shared<Branch>(0, 0, historySize, nullptr, global_fsm_table, false));
 		}
 	}
 	else {
@@ -159,7 +140,7 @@ BTB::BTB(unsigned btbSize, unsigned historySize, unsigned tagSize, unsigned fsmS
 			global_hist->push_front(0);
 		}
 		for (unsigned int i = 0; i < btbSize; i++) {
-			btbTable.push_back(make_shared<Branch>(0, 0, 0, historySize, global_hist, nullptr, false));
+			btbTable.push_back(make_shared<Branch>(0, 0, historySize, global_hist, nullptr, false));
 		}
 	}
 }
@@ -200,7 +181,6 @@ void BTB::update(uint32_t pc, uint32_t targetPc, bool taken) {
 	targetBranch->fsmTable->update(fsmEntry ^ calcShared(pc, Shared), taken);
 	targetBranch->updateHist(taken);
 	targetBranch->targetPc = targetPc;
-	targetBranch->pc = pc;
 }
 
 bool BTB::predict(uint32_t pc, uint32_t *dst) {
@@ -233,7 +213,6 @@ void BTB::insertBranch(uint32_t pc, uint32_t targetPc, bool taken) {
 		targetBranch->used = true;
 		targetBranch->tag = *tagIdx;
 		targetBranch->targetPc = targetPc;
-		targetBranch->pc = pc;
 		targetBranch->fsmTable->update(fsmEntry ^ calcShared(pc, Shared), taken);
 		targetBranch->updateHist(taken);
 	}
@@ -246,7 +225,6 @@ void BTB::insertBranch(uint32_t pc, uint32_t targetPc, bool taken) {
 		targetBranch->tag = *tagIdx;
 		targetBranch->hist = local_hist;
 		targetBranch->targetPc = targetPc;
-		targetBranch->pc = pc;
 		targetBranch->fsmTable->update(fsmEntry ^ calcShared(pc, Shared), taken);
 		targetBranch->updateHist(taken);
 	}
@@ -254,7 +232,6 @@ void BTB::insertBranch(uint32_t pc, uint32_t targetPc, bool taken) {
 		targetBranch->used = true;
 		targetBranch->tag = *tagIdx;
 		targetBranch->targetPc = targetPc;
-		targetBranch->pc = pc;
 		targetBranch->fsmTable = make_shared<FSM_Table>(pow(2,historySize), fsmState);
 		targetBranch->fsmTable->update(fsmEntry, taken);
 		targetBranch->updateHist(taken);
@@ -268,7 +245,6 @@ void BTB::insertBranch(uint32_t pc, uint32_t targetPc, bool taken) {
 		targetBranch->tag = *tagIdx;
 		targetBranch->hist = local_hist;
 		targetBranch->targetPc = targetPc;
-		targetBranch->pc = pc;
 		targetBranch->fsmTable = make_shared<FSM_Table>(pow(2,historySize), fsmState);
 		targetBranch->fsmTable->update(histToInt(targetBranch->hist), taken);
 		targetBranch->updateHist(taken);
