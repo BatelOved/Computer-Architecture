@@ -4,6 +4,8 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <memory>
+#include "cacheSimulator.h"
 
 using std::FILE;
 using std::string;
@@ -62,6 +64,14 @@ int main(int argc, char **argv) {
 		}
 	}
 
+	shared_ptr<CacheSim> cache_sim = make_shared<CacheSim>(MemCyc, BSize, L1Size, L2Size, L1Cyc,
+		L2Cyc, L1Assoc, L2Assoc, WrAlloc);
+
+	if (!cache_sim) {
+		fprintf(stderr, "Cache Simulator init failed\n");
+		exit(8);
+	}
+
 	while (getline(file, line)) {
 
 		stringstream ss(line);
@@ -87,11 +97,14 @@ int main(int argc, char **argv) {
 		// DEBUG - remove this line
 		cout << " (dec) " << num << endl;
 
+		cache_sim->updateLine(operation, num);
 	}
 
 	double L1MissRate;
 	double L2MissRate;
 	double avgAccTime;
+
+	cache_sim->getStats(&L1MissRate, &L2MissRate, &avgAccTime);
 
 	printf("L1miss=%.03f ", L1MissRate);
 	printf("L2miss=%.03f ", L2MissRate);
