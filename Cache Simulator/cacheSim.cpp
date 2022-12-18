@@ -64,7 +64,7 @@ int main(int argc, char **argv) {
 		}
 	}
 
-	shared_ptr<cacheSim> cache_sim = make_shared<cacheSim>(MemCyc, BSize, L1Size, L2Size, L1Cyc,
+	shared_ptr<CacheSim> cache_sim = make_shared<CacheSim>(MemCyc, BSize, L1Size, L2Size, L1Cyc,
 		L2Cyc, L1Assoc, L2Assoc, WrAlloc);
 
 	if (!cache_sim) {
@@ -95,16 +95,16 @@ int main(int argc, char **argv) {
 		num = strtoul(cutAddress.c_str(), NULL, 16);
 
 		// DEBUG - remove this line
-		cout << " (dec) " << num;
+		cout << " (dec) " << num << endl;
 
-		cache_sim->cacheSim_update(operation, num);
+		cache_sim->updateLine(operation, num);
 	}
 
 	double L1MissRate;
 	double L2MissRate;
 	double avgAccTime;
 
-	cache_sim->cacheSim_GetStats(&L1MissRate, &L2MissRate, &avgAccTime);
+	cache_sim->getStats(&L1MissRate, &L2MissRate, &avgAccTime);
 
 	printf("L1miss=%.03f ", L1MissRate);
 	printf("L2miss=%.03f ", L2MissRate);
