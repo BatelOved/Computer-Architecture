@@ -1,5 +1,11 @@
-#include "CacheSimulator.h"
-
+#include "cacheSimulator.h"
+#include <iostream>
+// uncomment to disable assert()
+// #define NDEBUG
+#include <cassert>
+ 
+// Use (void) to silence unused warnings.
+#define assertm(exp, msg) assert(((void)msg, exp))
 
 /*************************************************Class Address*****************************************************/
 
@@ -28,7 +34,7 @@ void CacheLine::setInvalid() {
 
 LRU::LRU(unsigned size): size(size) {
     LRU_table = vector<unsigned>();
-    for (int i = 0; i < size; i++) {
+    for (unsigned i = 0; i < size; i++) {
         LRU_table.push_back(0);
     }
 }
@@ -51,20 +57,19 @@ unsigned LRU::getLRUWay() {
 
 /*************************************************Class Set**********************************************************/
 
-Set::Set(unsigned waysNum): waysNum(waysNum) {
-    LRU_table = make_shared<LRU>(waysNum);
+Set::Set(unsigned waysNum): waysNum(waysNum), LRU_table(waysNum) {
     ways = vector<shared_ptr<CacheLine>>();
-    for (int i = 0; i < waysNum; i++) {
+    for (unsigned i = 0; i < waysNum; i++) {
         ways.push_back(nullptr);
     }
 }
 
 void Set::updateLRU(unsigned way) {
-    LRU_table->update(way);
+    LRU_table.update(way);
 }
 
 bool Set::is_full(unsigned* way) {
-    for (int i = 0; i < waysNum; i++) {
+    for (unsigned i = 0; i < waysNum; i++) {
         if (!(ways[i]->valid)) {
             *way = i;
             return false;
@@ -74,7 +79,7 @@ bool Set::is_full(unsigned* way) {
 }
 
 unsigned Set::getLRUWay() {
-    return LRU_table->getLRUWay();
+    return LRU_table.getLRUWay();
 }
 
 /*************************************************Class CacheLevel***************************************************/
@@ -123,46 +128,27 @@ CacheLevel::CacheLevel(unsigned BlockSize, unsigned CacheSize, unsigned AccCyc, 
     BlockSize(BlockSize), CacheSize(CacheSize), AccCyc(AccCyc), Assoc(Assoc), WrAlloc(WrAlloc), MissCnt(0), AccCnt(0) {
     EntryNum = CacheSize / BlockSize;
     cacheSetMem = vector<shared_ptr<Set>>();
-    for (int i = 0; i < (EntryNum/Assoc); i++) {
+    for (unsigned i = 0; i < (EntryNum/Assoc); i++) {
         cacheSetMem.push_back(make_shared<Set>(Assoc));
     }
-    cacheMem = vector<shared_ptr<CacheLine>>();
     Address addr(0, BlockSize, EntryNum / Assoc, pow(2,(32 - (log2(BlockSize) + log2(EntryNum / Assoc)))));
-    bool fullyAssoc = false;
-    bool directMap = false;
-    if (Assoc >= EntryNum) {
-        fullyAssoc = true;
-    }
-    if (Assoc == 1) {
-        directMap = true;
-    }
-    for (int i = 0; i < EntryNum; i++) {
-        shared_ptr<CacheLine> line = make_shared<CacheLine>(addr, false);
-        cacheMem.push_back(line);
 
-        if (fullyAssoc || directMap) {
-            cacheSetMem[i/Assoc]->ways[i%Assoc] = line;
-        }
-        else {
-            cacheSetMem[i%Assoc]->ways[i/Assoc] = line;
-        }
+    for (unsigned i = 0; i < EntryNum; i++) {
+        shared_ptr<CacheLine> line = make_shared<CacheLine>(addr, false);
+        cacheSetMem[i%(EntryNum/Assoc)]->ways[i/(EntryNum/Assoc)] = line;
     }
 }
 
 bool CacheLevel::is_cacheHit(unsigned long int address, unsigned* targetWay) {
     Address addr(address, BlockSize, EntryNum / Assoc, pow(2,(32 - (log2(BlockSize) + log2(EntryNum / Assoc)))));
     shared_ptr<Set> curr_set = cacheSetMem[addr.set];
-    for (int i = 0; i < Assoc; i++) {
+    for (unsigned i = 0; i < Assoc; i++) {
         if (curr_set->ways[i]->address.tag == addr.tag && curr_set->ways[i]->valid) {
             *targetWay = i;
             return true;
         }
     }
     return false;
-}
-
-unsigned CacheLevel::calcAccTime() {
-    return AccCnt * AccCyc;
 }
 
 double CacheLevel::calcMissRate() {
@@ -172,35 +158,39 @@ double CacheLevel::calcMissRate() {
 /*************************************************Class CacheSim*****************************************************/
 
 CacheSim::CacheSim(unsigned MemCyc, unsigned BSize, unsigned L1Size, unsigned L2Size, unsigned L1Cyc,
-    unsigned L2Cyc, unsigned L1Assoc, unsigned L2Assoc, unsigned WrAlloc): MemCyc(MemCyc), MemAccCnt(0),
+    unsigned L2Cyc, unsigned L1Assoc, unsigned L2Assoc, unsigned WrAlloc): MemCyc(MemCyc),
         L1(make_shared<CacheLevel>(pow(2,BSize), pow(2,L1Size), L1Cyc, pow(2,L1Assoc), WrAlloc))
         ,L2(make_shared<CacheLevel>(pow(2,BSize), pow(2,L2Size), L2Cyc, pow(2,L2Assoc), WrAlloc)) {}
 
-void CacheSim::eviction(CacheLevels level, unsigned* targetWayL1, unsigned* targetWayL2, unsigned long int address) {
+void CacheSim::eviction(CacheLevels level, unsigned targetWayL1, unsigned targetWayL2, unsigned long int address, bool snooping) {
     unsigned long int targetAddr;
     unsigned targetWay = 0;
 
     if (level == Level1) {
-        if (L1->is_dirty(address, *targetWayL1)) {
-            targetAddr = L1->getAddr(address, *targetWayL1);
-            L2->is_cacheHit(targetAddr, &targetWay);
-            L2->setDirty(address, targetWay);
-            L2->updateLRU(address, targetWay);
+        if (L1->is_dirty(address, targetWayL1)) {
+            targetAddr = L1->getAddr(address, targetWayL1);
+            assertm(L2->is_cacheHit(targetAddr, &targetWay), "No Inclusion!!!");
+            L2->setDirty(targetAddr, targetWay);
+            if (snooping == false) {
+                L2->updateLRU(targetAddr, targetWay);
+            }
         }
-        L1->setInvalid(address, *targetWayL1);
+        L1->setInvalid(address, targetWayL1);
     }
     
     else if (level == Level2) {
-        targetAddr = L2->getAddr(address, *targetWayL2);
-        L1->is_cacheHit(targetAddr, &targetWay); // snoop
-        eviction(Level1, &targetWay, targetWayL2, address);
-        L2->setInvalid(address, *targetWayL2);
+        targetAddr = L2->getAddr(address, targetWayL2);
+        if (L1->is_cacheHit(targetAddr, &targetWay)) { // snooping
+            eviction(Level1, targetWay, targetWayL2, targetAddr, true);
+        }
+        L2->setInvalid(address, targetWayL2);
     }
 }
 
 void CacheSim::updateLine(char operation, unsigned long int address) {
     unsigned targetWayL1 = L1->getLRUWay(address);
     unsigned targetWayL2 = L2->getLRUWay(address);
+
     // L1 hit
     if (L1->is_cacheHit(address, &targetWayL1)) {
         L1->updateLRU(address, targetWayL1);
@@ -221,7 +211,7 @@ void CacheSim::updateLine(char operation, unsigned long int address) {
             if (operation == 'w') {
                 if (L1->WrAlloc) {
                     if (L1->is_full(address, &targetWayL1)) {
-                        eviction(Level1, &targetWayL1, &targetWayL2, address);
+                        eviction(Level1, targetWayL1, targetWayL2, address);
                     }
                     L1->updateLine(address, targetWayL1);
                     L1->setDirty(address, targetWayL1);
@@ -234,7 +224,7 @@ void CacheSim::updateLine(char operation, unsigned long int address) {
             // Read
             else {
                 if (L1->is_full(address, &targetWayL1)) {
-                    eviction(Level1, &targetWayL1, &targetWayL2, address);
+                    eviction(Level1, targetWayL1, targetWayL2, address);
                 }
                 L1->updateLine(address, targetWayL1);
                 L1->updateLRU(address, targetWayL1);
@@ -249,20 +239,20 @@ void CacheSim::updateLine(char operation, unsigned long int address) {
                 if (L2->WrAlloc) {
                     if (L1->WrAlloc) {
                         if (L2->is_full(address, &targetWayL2)) {
-                            eviction(Level2, &targetWayL1, &targetWayL2, address);
-                        }
-                        if (L1->is_full(address, &targetWayL1)) {
-                            eviction(Level1, &targetWayL1, &targetWayL2, address);
+                            eviction(Level2, targetWayL1, targetWayL2, address);
                         }
                         L2->updateLine(address, targetWayL2);
                         L2->updateLRU(address, targetWayL2);
+                        if (L1->is_full(address, &targetWayL1)) {
+                            eviction(Level1, targetWayL1, targetWayL2, address);
+                        }
                         L1->updateLine(address, targetWayL1);
-                        L1->updateLRU(address, targetWayL1);
                         L1->setDirty(address, targetWayL1);
+                        L1->updateLRU(address, targetWayL1);
                     }
                     else {
                         if (L2->is_full(address, &targetWayL2)) {
-                            eviction(Level2, &targetWayL1, &targetWayL2, address);
+                            eviction(Level2, targetWayL1, targetWayL2, address);
                         }
                         L2->updateLine(address, targetWayL2);
                         L2->setDirty(address, targetWayL2);
@@ -273,18 +263,16 @@ void CacheSim::updateLine(char operation, unsigned long int address) {
             // Read
             else {
                 if (L2->is_full(address, &targetWayL2)) {
-                    eviction(Level2, &targetWayL1, &targetWayL2, address);
-                }
-                if (L1->is_full(address, &targetWayL1)) {
-                    eviction(Level1, &targetWayL1, &targetWayL2, address);
+                    eviction(Level2, targetWayL1, targetWayL2, address);
                 }
                 L2->updateLine(address, targetWayL2);
                 L2->updateLRU(address, targetWayL2);
+                if (L1->is_full(address, &targetWayL1)) {
+                    eviction(Level1, targetWayL1, targetWayL2, address);
+                }
                 L1->updateLine(address, targetWayL1);
                 L1->updateLRU(address, targetWayL1);
             }
-
-            MemAccCnt++;
         }
 
         L2->AccCnt++;
