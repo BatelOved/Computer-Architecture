@@ -18,11 +18,11 @@ WHITE=`tput setaf 7`
     echo "${CYAN}This Year Segel Tests: "
 for num in {1..3}
 do
-    var=$( cat ../examples/example${num}_command )
-    ./cacheSim "../examples/example${num}_trace" ${var} > ${num}.txt
-    #valgrind ./cacheSim "../examples/example${num}_trace" ${var} > ${num}leak.txt
-    diff ${num}.txt ../examples/example${num}_output
-    if cmp ${num}.txt ../examples/example${num}_output;
+    var=$( cat ./examples/example${num}_command )
+    ./../cacheSim "./examples/example${num}_trace" ${var} > ${num}.txt
+    #valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes ./cacheSim "./examples/example${num}_trace" ${var} > ${num}leak.txt 2>&1
+    #diff ${num}.txt ./examples/example${num}_output
+    if cmp ${num}.txt ./examples/example${num}_output;
         then
     echo "${GREEN}test ${num} passed";
         else
@@ -30,19 +30,36 @@ do
     fi
 done
 
+echo
+echo
     echo "${CYAN}Last Year Segel Tests: "
 for num in {1..20}
 do
-    var=$( cat ../test2/example${num}_command )
-    ./cacheSim "../test2/example${num}_trace" ${var} > ${num}.txt
-    #valgrind ./cacheSim "../test2/example${num}_trace" ${var} > ${num}leak.txt
-    diff ${num}.txt ../test2/example${num}_output
-    if cmp ${num}.txt ../test2/example${num}_output;
+    var=$( cat ./test2/example${num}_command )
+    ./../cacheSim "./test2/example${num}_trace" ${var} > ${num}.txt
+    #valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes ./cacheSim "./test2/example${num}_trace" ${var} > ${num}leak.txt 2>&1
+    #diff ${num}.txt ./test2/example${num}_output
+    if cmp ${num}.txt ./test2/example${num}_output;
     then
     echo "${GREEN}test ${num} passed";
     else
         echo "${RED}test ${num} failed";
-    cmp ${num}.txt ../test2/example${num}_output
+    fi
+done
+echo
+echo
+    echo "${CYAN}Nimrod Tests: "
+for num in {0..39}
+do
+    var=$( cat ./nimrod_tests/example${num}_command )
+    ./../cacheSim "./nimrod_tests/example${num}_trace" ${var} > ${num}.txt
+    #valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes ./cacheSim "./test2/example${num}_trace" ${var} > ${num}leak.txt 2>&1
+    #diff ${num}.txt ./nimrod_tests/nimrod${num}.txt;
+    if cmp ${num}.txt ./nimrod_tests/nimrod${num}.txt;
+    then
+    echo "${GREEN}test ${num} passed";
+    else
+        echo "${RED}test ${num} failed";
     fi
 done
 

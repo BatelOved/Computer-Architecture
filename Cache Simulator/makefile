@@ -1,7 +1,18 @@
 # 046267 Computer Architecture - Winter 20/21 - HW #2
 
-cacheSim: cacheSim.cpp
-	g++ -o cacheSim cacheSim.cpp
+# Environment for C++ 
+CXX = g++
+CXXFLAGS = -std=c++11 -Wall -g
+OBJ = cacheSimulator.o cacheSim.o
+
+
+cacheSim: $(OBJ)
+	$(CXX) -o $@ $(OBJ)
+
+cacheSimulator.o: cacheSimulator.cpp
+	$(CXX) -c $(CXXFLAGS) -o $@ $^ -lm
+
+
 
 .PHONY: clean
 clean:
