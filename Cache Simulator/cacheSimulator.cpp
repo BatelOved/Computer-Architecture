@@ -1,11 +1,5 @@
 #include "cacheSimulator.h"
-#include <iostream>
-// uncomment to disable assert()
-// #define NDEBUG
-#include <cassert>
- 
-// Use (void) to silence unused warnings.
-#define assertm(exp, msg) assert(((void)msg, exp))
+
 
 /*************************************************Class Address*****************************************************/
 
@@ -169,7 +163,7 @@ void CacheSim::eviction(CacheLevels level, unsigned targetWayL1, unsigned target
     if (level == Level1) {
         if (L1->is_dirty(address, targetWayL1)) {
             targetAddr = L1->getAddr(address, targetWayL1);
-            assertm(L2->is_cacheHit(targetAddr, &targetWay), "No Inclusion!!!");
+            L2->is_cacheHit(targetAddr, &targetWay);
             L2->setDirty(targetAddr, targetWay);
             if (snooping == false) {
                 L2->updateLRU(targetAddr, targetWay);
@@ -194,7 +188,7 @@ void CacheSim::updateLine(char operation, unsigned long int address) {
     // L1 hit
     if (L1->is_cacheHit(address, &targetWayL1)) {
         L1->updateLRU(address, targetWayL1);
-        // Read or Write
+        // Write
         if (operation == 'w') {
             L1->setDirty(address, targetWayL1);
         }
