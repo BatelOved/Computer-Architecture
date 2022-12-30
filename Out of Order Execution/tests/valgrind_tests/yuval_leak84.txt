@@ -1,0 +1,117 @@
+==73197== Memcheck, a memory error detector
+==73197== Copyright (C) 2002-2022, and GNU GPL'd, by Julian Seward et al.
+==73197== Using Valgrind-3.19.0 and LibVEX; rerun with -h for copyright info
+==73197== Command: ./dflow_calc ./inputs/opcode84 ./inputs/test_example84 p0 p1 p2 p3 p4 p5 p6 p7 p8 p9 p10 p11 p12 p13 p14 p15 p16 p17 p18 p19 p20 p21 p22 p23 p24 p25 p26 p27 p28 p29 p30 p31 p32 p33 p34 p35 p36 p37 p38 p39 p40 p41 p42 p43 p44 p45 p46 p47 p48 p49 d0 d1 d2 d3 d4 d5 d6 d7 d8 d9 d10 d11 d12 d13 d14 d15 d16 d17 d18 d19 d20 d21 d22 d23 d24 d25 d26 d27 d28 d29 d30 d31 d32 d33 d34 d35 d36 d37 d38 d39 d40 d41 d42 d43 d44 d45 d46 d47 d48 d49
+==73197== 
+Reading the opcodes latency info from ./inputs/opcode84 ... Got latency for 30 opcodes
+Reading the program file ./inputs/test_example84 ... Found 50 instructions
+getProgDepth()==68
+getDepDepth(0)==0
+getDepDepth(1)==0
+getDepDepth(2)==0
+getDepDepth(3)==0
+getDepDepth(4)==3
+getDepDepth(5)==3
+getDepDepth(6)==0
+getDepDepth(7)==0
+getDepDepth(8)==5
+getDepDepth(9)==5
+getDepDepth(10)==10
+getDepDepth(11)==13
+getDepDepth(12)==13
+getDepDepth(13)==22
+getDepDepth(14)==32
+getDepDepth(15)==13
+getDepDepth(16)==22
+getDepDepth(17)==10
+getDepDepth(18)==31
+getDepDepth(19)==39
+getDepDepth(20)==39
+getDepDepth(21)==0
+getDepDepth(22)==49
+getDepDepth(23)==5
+getDepDepth(24)==0
+getDepDepth(25)==5
+getDepDepth(26)==39
+getDepDepth(27)==32
+getDepDepth(28)==49
+getDepDepth(29)==6
+getDepDepth(30)==0
+getDepDepth(31)==13
+getDepDepth(32)==0
+getDepDepth(33)==15
+getDepDepth(34)==13
+getDepDepth(35)==42
+getDepDepth(36)==5
+getDepDepth(37)==0
+getDepDepth(38)==8
+getDepDepth(39)==55
+getDepDepth(40)==55
+getDepDepth(41)==65
+getDepDepth(42)==12
+getDepDepth(43)==20
+getDepDepth(44)==31
+getDepDepth(45)==61
+getDepDepth(46)==12
+getDepDepth(47)==62
+getDepDepth(48)==39
+getDepDepth(49)==13
+getInstDeps(0)=={-1,-1}
+getInstDeps(1)=={-1,-1}
+getInstDeps(2)=={-1,-1}
+getInstDeps(3)=={-1,-1}
+getInstDeps(4)=={-1,0}
+getInstDeps(5)=={0,-1}
+getInstDeps(6)=={-1,-1}
+getInstDeps(7)=={-1,-1}
+getInstDeps(8)=={1,1}
+getInstDeps(9)=={7,-1}
+getInstDeps(10)=={6,-1}
+getInstDeps(11)=={9,-1}
+getInstDeps(12)=={9,-1}
+getInstDeps(13)=={-1,11}
+getInstDeps(14)=={13,-1}
+getInstDeps(15)=={9,-1}
+getInstDeps(16)=={11,7}
+getInstDeps(17)=={6,-1}
+getInstDeps(18)=={-1,16}
+getInstDeps(19)=={-1,18}
+getInstDeps(20)=={-1,18}
+getInstDeps(21)=={-1,-1}
+getInstDeps(22)=={20,6}
+getInstDeps(23)=={5,-1}
+getInstDeps(24)=={-1,-1}
+getInstDeps(25)=={7,-1}
+getInstDeps(26)=={18,-1}
+getInstDeps(27)=={7,13}
+getInstDeps(28)=={18,20}
+getInstDeps(29)=={25,5}
+getInstDeps(30)=={-1,-1}
+getInstDeps(31)=={-1,8}
+getInstDeps(32)=={-1,-1}
+getInstDeps(33)=={31,-1}
+getInstDeps(34)=={7,9}
+getInstDeps(35)=={14,-1}
+getInstDeps(36)=={-1,7}
+getInstDeps(37)=={-1,-1}
+getInstDeps(38)=={37,23}
+getInstDeps(39)=={22,6}
+getInstDeps(40)=={22,34}
+getInstDeps(41)=={39,7}
+getInstDeps(42)=={36,-1}
+getInstDeps(43)=={9,33}
+getInstDeps(44)=={42,16}
+getInstDeps(45)=={22,40}
+getInstDeps(46)=={5,36}
+getInstDeps(47)=={45,35}
+getInstDeps(48)=={16,18}
+getInstDeps(49)=={9,8}
+==73197== 
+==73197== HEAP SUMMARY:
+==73197==     in use at exit: 0 bytes in 0 blocks
+==73197==   total heap usage: 109 allocs, 109 frees, 90,752 bytes allocated
+==73197== 
+==73197== All heap blocks were freed -- no leaks are possible
+==73197== 
+==73197== For lists of detected and suppressed errors, rerun with: -s
+==73197== ERROR SUMMARY: 0 errors from 0 contexts (suppressed: 0 from 0)

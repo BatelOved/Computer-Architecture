@@ -10,11 +10,11 @@ using namespace std;
 #define REGS_NUM 32
 
 struct Inst {
-    shared_ptr<Inst> parent1;
-    shared_ptr<Inst> parent2;
     shared_ptr<InstInfo> info;
     unsigned latency;
     int id;
+    shared_ptr<Inst> parent1;
+    shared_ptr<Inst> parent2;
     unsigned instDepth;
 
     Inst(shared_ptr<InstInfo> info, unsigned latency, int id, shared_ptr<Inst> parent1, shared_ptr<Inst> parent2);
@@ -47,7 +47,7 @@ ProgCtx analyzeProg(const unsigned int opsLatency[], const InstInfo progTrace[],
         registers[i] = entry;
     }
 
-    for (int i = 0; i < numOfInsts; i++) {
+    for (unsigned i = 0; i < numOfInsts; i++) {
         shared_ptr<Inst> parent1 = registers[progTrace[i].src1Idx];
         shared_ptr<Inst> parent2 = registers[progTrace[i].src2Idx];
 
@@ -97,7 +97,7 @@ int getProgDepth(ProgCtx ctx) {
         return -1;
     }
 
-    int progDepth = 0;
+    unsigned progDepth = 0;
 
     for (auto it : dflow->progInsts) {
         progDepth = it->instDepth >= progDepth ? it->instDepth : progDepth;

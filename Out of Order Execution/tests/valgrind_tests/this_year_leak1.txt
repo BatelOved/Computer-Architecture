@@ -1,0 +1,24 @@
+==81438== Memcheck, a memory error detector
+==81438== Copyright (C) 2002-2022, and GNU GPL'd, by Julian Seward et al.
+==81438== Using Valgrind-3.19.0 and LibVEX; rerun with -h for copyright info
+==81438== Command: ./dflow_calc ./examples/opcode1.dat ./examples/example1.in p0 p3 p5 p7 p9 d3 d9
+==81438== 
+Reading the opcodes latency info from ./examples/opcode1.dat ... Got latency for 6 opcodes
+Reading the program file ./examples/example1.in ... Found 10 instructions
+getProgDepth()==14
+getDepDepth(0)==0
+getDepDepth(3)==1
+getDepDepth(5)==8
+getDepDepth(7)==8
+getDepDepth(9)==13
+getInstDeps(3)=={0,-1}
+getInstDeps(9)=={8,7}
+==81438== 
+==81438== HEAP SUMMARY:
+==81438==     in use at exit: 0 bytes in 0 blocks
+==81438==   total heap usage: 29 allocs, 29 frees, 87,872 bytes allocated
+==81438== 
+==81438== All heap blocks were freed -- no leaks are possible
+==81438== 
+==81438== For lists of detected and suppressed errors, rerun with: -s
+==81438== ERROR SUMMARY: 0 errors from 0 contexts (suppressed: 0 from 0)

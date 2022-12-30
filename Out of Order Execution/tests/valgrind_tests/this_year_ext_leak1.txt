@@ -1,0 +1,38 @@
+==81502== Memcheck, a memory error detector
+==81502== Copyright (C) 2002-2022, and GNU GPL'd, by Julian Seward et al.
+==81502== Using Valgrind-3.19.0 and LibVEX; rerun with -h for copyright info
+==81502== Command: ./dflow_calc ./examples/opcode1.dat ./examples/example1.in p0 p1 p2 p3 p4 p5 p5 p6 p7 p8 p9 d0 d1 d2 d3 d4 d5 d6 d7 d8 d9
+==81502== 
+Reading the opcodes latency info from ./examples/opcode1.dat ... Got latency for 6 opcodes
+Reading the program file ./examples/example1.in ... Found 10 instructions
+getProgDepth()==14
+getDepDepth(0)==0
+getDepDepth(1)==0
+getDepDepth(2)==1
+getDepDepth(3)==1
+getDepDepth(4)==1
+getDepDepth(5)==8
+getDepDepth(5)==8
+getDepDepth(6)==8
+getDepDepth(7)==8
+getDepDepth(8)==9
+getDepDepth(9)==13
+getInstDeps(0)=={-1,-1}
+getInstDeps(1)=={-1,-1}
+getInstDeps(2)=={0,-1}
+getInstDeps(3)=={0,-1}
+getInstDeps(4)=={1,0}
+getInstDeps(5)=={3,1}
+getInstDeps(6)=={3,2}
+getInstDeps(7)=={3,0}
+getInstDeps(8)=={5,6}
+getInstDeps(9)=={8,7}
+==81502== 
+==81502== HEAP SUMMARY:
+==81502==     in use at exit: 0 bytes in 0 blocks
+==81502==   total heap usage: 29 allocs, 29 frees, 87,872 bytes allocated
+==81502== 
+==81502== All heap blocks were freed -- no leaks are possible
+==81502== 
+==81502== For lists of detected and suppressed errors, rerun with: -s
+==81502== ERROR SUMMARY: 0 errors from 0 contexts (suppressed: 0 from 0)
