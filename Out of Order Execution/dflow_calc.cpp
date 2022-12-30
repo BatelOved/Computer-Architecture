@@ -1,5 +1,5 @@
-/* 046267 Computer Architecture - Winter 20/21 - HW #3               */
-/* Implementation (skeleton)  for the dataflow statistics calculator */
+/* 046267 Computer Architecture - Winter 20/21 - HW #3          */
+/* Implementation for the dataflow statistics calculator        */
 
 #include "dflow_calc.h"
 #include <memory>
