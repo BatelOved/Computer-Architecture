@@ -9,6 +9,8 @@ using namespace std;
 #define ENTRY -1
 #define REGS_NUM 32
 
+/*************************************************struct Inst*****************************************************/
+
 struct Inst {
     shared_ptr<InstInfo> info;
     unsigned latency;
@@ -23,6 +25,7 @@ struct Inst {
 Inst::Inst(shared_ptr<InstInfo> info, unsigned latency, int id, shared_ptr<Inst> parent1, shared_ptr<Inst> parent2):
     info(shared_ptr<InstInfo>(info)), latency(latency), id(id), parent1(parent1), parent2(parent2), instDepth(latency) {}
 
+/*************************************************struct Dflow*****************************************************/
 
 struct Dflow {
     vector<shared_ptr<Inst>> progInsts;
@@ -30,7 +33,7 @@ struct Dflow {
     Dflow() {}
 };
 
-
+/***********************************************ProgCtx functions****************************************************/
 
 ProgCtx analyzeProg(const unsigned int opsLatency[], const InstInfo progTrace[], unsigned int numOfInsts) {
     Dflow* dflow = new Dflow();
@@ -40,7 +43,6 @@ ProgCtx analyzeProg(const unsigned int opsLatency[], const InstInfo progTrace[],
     }
 
     shared_ptr<Inst> entry = make_shared<Inst>(nullptr, 0, ENTRY, nullptr, nullptr);
-    shared_ptr<Inst> exit = make_shared<Inst>(nullptr, 0, ENTRY, nullptr, nullptr);
 
     shared_ptr<Inst> registers[REGS_NUM];
     for (int i = 0; i < REGS_NUM; i++) {
