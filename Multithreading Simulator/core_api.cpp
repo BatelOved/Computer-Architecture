@@ -161,7 +161,7 @@ public:
     virtual void ExecuteThread(int thread_id = -1) = 0;
 };
 
-MT_Sim::MT_Sim(): curr_thread(0), switch_cycles(0), switch_num(0) {
+MT_Sim::MT_Sim(): switch_cycles(0), curr_thread(0), switch_num(0) {
     threads_num = SIM_GetThreadsNum();
 
     for (int i = 0; i < threads_num; i++) {
