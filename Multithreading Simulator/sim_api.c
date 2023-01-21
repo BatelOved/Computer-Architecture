@@ -15,20 +15,11 @@ uint32_t prog_start; // the addr of the code block
 uint32_t data_start; // the addr of the data block
 Instruction** instructions; // where the instructions are kept
 int32_t data[100]; // where the data is kept
-uint32_t ticks; // the current clk tick
 uint32_t read_tick; // the clk tick of the first attempt to read
 uint32_t write_tick;// the clk tick for write
 int load_store_latency[2];//load store
 int switch_; //the cycles that switch between cycles takes
 int threadnumber;
-
-typedef struct {
-    uint32_t addr;
-    int32_t val;
-    bool valid;
-    uint32_t ticks; // for LRU
-} cache_line;
-
 
 uint32_t get_start(char *line) {
     line = strtok(line, "\n");
